@@ -15,8 +15,8 @@ coulmns = [
 ]
 
 # Fill in missing Cabin with None
-for coulmn in coulmns:
-    train[coulmn] = train[coulmn].fillna("None")
+# for coulmn in coulmns:
+#     train[coulmn] = train[coulmn].fillna("None")
 
 train2 = train.iloc[0: TRAIN_NUM]
 print(len(train2))

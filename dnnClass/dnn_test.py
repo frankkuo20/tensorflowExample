@@ -2,6 +2,7 @@ import tensorflow as tf
 from dnnClass.dnn import NnObj, input_pipeline
 
 TEST_CSV = '../csv/test.csv'
+TEST_CSV = '../csv/test2.csv'
 
 if __name__ == '__main__':
     nnObj = NnObj()
@@ -19,10 +20,16 @@ if __name__ == '__main__':
     key, value = reader.read(filename_queue)
 
     record_defaults = [
+        [''],
+        [''], [''],
         [''], [''], [''],
-        [''], [''], ['']]
+        [0], [0], [''], [''], [''], [''],
+    ]
 
-    _, user, song, col, col2, col3 = tf.decode_csv(value, record_defaults=record_defaults)
+
+    _, user, song, col, col2, col3, \
+    city, bd, gender, registered_via, registration_init_time, expiration_date, \
+        = tf.decode_csv(value, record_defaults=record_defaults)
 
     user = tf.string_to_hash_bucket_fast(user, 100, name=None)
     song = tf.string_to_hash_bucket_fast(song, 100, name=None)
@@ -31,12 +38,24 @@ if __name__ == '__main__':
     col2 = tf.string_to_hash_bucket_fast(col2, 21, name=None)
     col3 = tf.string_to_hash_bucket_fast(col3, 13, name=None)
 
-    features = tf.stack([col, col2, col3])
+    city = tf.to_int64(city)
+    bd = tf.to_int64(bd)
+    gender = tf.string_to_hash_bucket_fast(gender, 3, name=None)
+    # registered_via = tf.to_int64(registered_via)
+    # registration_init_time =
+
+    features = tf.stack(
+        [
+            col, col2, col3,
+            city, bd, gender,
+        ]
+    )
 
     saver = tf.train.Saver()
 
     num = 0
     max_step = 10000
+    max_step = 5000
     testNum = 2556790
     csvFile = open('result.csv', 'w')
     csvFile.write('id,target')

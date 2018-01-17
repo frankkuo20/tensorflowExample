@@ -1,6 +1,7 @@
+import datetime
 import tensorflow as tf
 
-INPUT_SIZE = 4
+INPUT_SIZE = 6
 OUTPUT_SIZE = 1
 
 
@@ -41,6 +42,8 @@ class NnObj:
         # y = tf.nn.softmax(y)
 
         cross_entropy = tf.losses.mean_squared_error(labels=y_, predictions=y)
+        # cross_entropy = tf.reduce_sum(tf.pow(y - y_, 2)) / (2 * INPUT_SIZE)
+
         # cross_entropy = tf.reduce_mean(tf.square(y_ - y))
         # cross_entropy = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=y, labels=y_))
         # 10/20 new
@@ -90,17 +93,18 @@ def getFeaturesLabels(csvPath):
         [''], [''],
         [''], [''], [''], [0],
         [0], [0], [''], [''], [''], [''],
-        [''], [''], [''], [''], [''], [''],
+        # [0], [0], [''], [''], [''], [''],
     ]
 
     user, song, col, col2, col3, label, \
     city, bd, gender, registered_via, registration_init_time, expiration_date, \
-    song_length, genre_ids, artist_name, composer, lyricist, language \
         = tf.decode_csv(value, record_defaults=record_defaults)
+    # song_length, genre_ids, artist_name, composer, lyricist, language \
 
     # song_length, genre_ids, artist_name, composer, lyricist, language
     # city,bd,gender,registered_via,registration_init_time,expiration_date
     # labels = tf.one_hot(label, 2)
+
     labels = [label]
 
     user = tf.string_to_hash_bucket_fast(user, 100, name=None)
@@ -112,13 +116,19 @@ def getFeaturesLabels(csvPath):
 
     city = tf.to_int64(city)
     bd = tf.to_int64(bd)
-    
+    gender = tf.string_to_hash_bucket_fast(gender, 3, name=None)
+
+    stackList = [
+        col, col2, col3,
+        city, bd, gender
+    ]
+
     features = tf.stack(
-        [
-            col, col2, col3,
-            city, bd
-        ]
+        stackList
     )
+
+    global INPUT_SIZE
+    INPUT_SIZE = len(stackList)
     return features, labels
 
 
@@ -152,10 +162,11 @@ if __name__ == '__main__':
     init = tf.global_variables_initializer()
 
     step = 0
-    max_step = 10000
+    max_step = 5000
     printStep = 5
     save_step = 50
 
+    allLose = []
     with tf.Session() as sess:
         sess.run(init)
 
@@ -178,6 +189,7 @@ if __name__ == '__main__':
 
                 cross = sess.run(cross_entropy, feed_dict={x: features, y_: labels, keep_prob: 1.0})
                 print('%s cross_entropy is %.2f' % (step, cross))
+                allLose.append(cross)
 
                 if step % save_step == 0:
                     # 保存当前模型
@@ -201,3 +213,10 @@ if __name__ == '__main__':
 
         coord.join(threads)
         save_path = saver.save(sess, './models/graph.ckpt', global_step=step)
+
+    import matplotlib.pyplot as plt
+
+    plt.plot([i for i in range(max_step)], allLose)
+    plt.xlabel('step')
+    plt.ylabel('loss')
+    plt.show()
