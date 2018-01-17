@@ -31,7 +31,7 @@ if __name__ == '__main__':
     col2 = tf.string_to_hash_bucket_fast(col2, 21, name=None)
     col3 = tf.string_to_hash_bucket_fast(col3, 13, name=None)
 
-    features = tf.stack([user, song, col, col2, col3])
+    features = tf.stack([col, col2, col3])
 
     saver = tf.train.Saver()
 

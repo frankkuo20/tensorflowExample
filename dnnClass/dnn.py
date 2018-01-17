@@ -1,6 +1,6 @@
 import tensorflow as tf
 
-INPUT_SIZE = 5
+INPUT_SIZE = 4
 OUTPUT_SIZE = 1
 
 
@@ -17,7 +17,7 @@ class NnObj:
         x = tf.placeholder(tf.float32, [None, INPUT_SIZE])
         y_ = tf.placeholder(tf.float32, [None, OUTPUT_SIZE])  # right answer
 
-        networks = [INPUT_SIZE, 100, 50]
+        networks = [INPUT_SIZE, 100, 100, 100]
         mat_1 = x
 
         keep_prob = tf.placeholder(tf.float32)
@@ -46,11 +46,11 @@ class NnObj:
         # 10/20 new
         beta = 0.01
 
-        cross_entropy = cross_entropy + beta * regularizers
-        cross_entropy = tf.reduce_mean(cross_entropy)
+        # cross_entropy = cross_entropy + beta * regularizers
+        # cross_entropy = tf.reduce_mean(cross_entropy)
 
-        train_step = tf.train.AdamOptimizer(1e-4).minimize(cross_entropy)
-        # train_step = tf.train.GradientDescentOptimizer(1e-4).minimize(cross_entropy)
+        # train_step = tf.train.AdamOptimizer(1e-4).minimize(cross_entropy)
+        train_step = tf.train.GradientDescentOptimizer(1e-4).minimize(cross_entropy)
 
         # correct_prediction = tf.equal(y, y_)
         # accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
@@ -66,6 +66,7 @@ class NnObj:
         self.train_step = train_step
         self.accuracy = accuracy
 
+
 def input_pipeline(features, labels, batch_size):
     # features = tf.reshape(features, [-1, 10])
 
@@ -78,6 +79,7 @@ def input_pipeline(features, labels, batch_size):
 
     return feature_batch, label_batch
 
+
 def getFeaturesLabels(csvPath):
     filename_queue = tf.train.string_input_producer([csvPath])
 
@@ -86,10 +88,18 @@ def getFeaturesLabels(csvPath):
 
     record_defaults = [
         [''], [''],
-        [''], [''], [''], [0]]
+        [''], [''], [''], [0],
+        [0], [0], [''], [''], [''], [''],
+        [''], [''], [''], [''], [''], [''],
+    ]
 
-    user, song, col, col2, col3, label = tf.decode_csv(value, record_defaults=record_defaults)
+    user, song, col, col2, col3, label, \
+    city, bd, gender, registered_via, registration_init_time, expiration_date, \
+    song_length, genre_ids, artist_name, composer, lyricist, language \
+        = tf.decode_csv(value, record_defaults=record_defaults)
 
+    # song_length, genre_ids, artist_name, composer, lyricist, language
+    # city,bd,gender,registered_via,registration_init_time,expiration_date
     # labels = tf.one_hot(label, 2)
     labels = [label]
 
@@ -100,13 +110,25 @@ def getFeaturesLabels(csvPath):
     col2 = tf.string_to_hash_bucket_fast(col2, 21, name=None)
     col3 = tf.string_to_hash_bucket_fast(col3, 13, name=None)
 
-    features = tf.stack([user, song, col, col2, col3])
+    city = tf.to_int64(city)
+    bd = tf.to_int64(bd)
+    
+    features = tf.stack(
+        [
+            col, col2, col3,
+            city, bd
+        ]
+    )
     return features, labels
+
 
 # TRAIN_CSV = '../csv/dnn/train.csv'
 # TRAIN_CSV = '../csv/train.csv'
 TRAIN_CSV = '../csv/train_train.csv'
 TEST_CSV = '../csv/train_test.csv'
+
+TRAIN_CSV = '../csv/train_train2.csv'
+TEST_CSV = '../csv/train_test2.csv'
 
 if __name__ == '__main__':
     nnObj = NnObj()
@@ -118,7 +140,6 @@ if __name__ == '__main__':
     accuracy = nnObj.accuracy
     keep_prob = nnObj.keep_prob
     cross_entropy = nnObj.cross_entropy
-
 
     features, labels = getFeaturesLabels(TRAIN_CSV)
 
@@ -137,6 +158,8 @@ if __name__ == '__main__':
 
     with tf.Session() as sess:
         sess.run(init)
+
+        # saver.restore(sess, tf.train.latest_checkpoint('models'))
 
         coord = tf.train.Coordinator()
         threads = tf.train.start_queue_runners(coord=coord)
